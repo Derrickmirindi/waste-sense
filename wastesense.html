@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Waste Sense — AI Waste Detection</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-0:#0a0e1a; --bg-1:#0f1524; --bg-2:#171f33; --bg-3:#1f2a44;
+    --accent:#00d4ff; --accent-2:#7c3aed; --accent-3:#10b981;
+    --glass:#1565C0; --metal:#B71C1C; --paper:#2E7D32; --plastic:#E65100;
+    --text:#e6edf7; --text-dim:#94a3b8; --text-mute:#64748b;
+    --border:rgba(148,163,184,.15); --border-hi:rgba(0,212,255,.4);
+    --shadow:0 10px 40px rgba(0,0,0,.4);
+    --radius:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:'Inter',sans-serif;color:var(--text);
+    background:radial-gradient(1200px 600px at 10% -10%,rgba(124,58,237,.18),transparent 60%),
+               radial-gradient(900px 500px at 90% 0%,rgba(0,212,255,.15),transparent 60%),
+               linear-gradient(180deg,var(--bg-0),var(--bg-1));
+    min-height:100vh;overflow-x:hidden;
+  }
+  .mono{font-family:'JetBrains Mono',monospace}
+
+  /* TOP NAV */
+  header{
+    position:sticky;top:0;z-index:50;
+    backdrop-filter:blur(14px);background:rgba(10,14,26,.7);
+    border-bottom:1px solid var(--border);
+  }
+  .nav{max-width:1400px;margin:0 auto;padding:14px 24px;
+       display:flex;align-items:center;justify-content:space-between;gap:16px}
+  .logo{display:flex;align-items:center;gap:12px;font-weight:800;font-size:18px;letter-spacing:.3px}
+  .logo-mark{
+    width:38px;height:38px;border-radius:10px;
+    background:conic-gradient(from 180deg,var(--accent),var(--accent-2),var(--accent-3),var(--accent));
+    display:grid;place-items:center;font-size:18px;box-shadow:0 0 30px rgba(0,212,255,.35)
+  }
+  .nav-links{display:flex;gap:6px;flex-wrap:wrap}
+  .nav-links button{
+    background:transparent;color:var(--text-dim);border:1px solid transparent;
+    padding:8px 14px;border-radius:10px;font:500 14px Inter;cursor:pointer;transition:.2s
+  }
+  .nav-links button:hover{color:var(--text);background:var(--bg-2)}
+  .nav-links button.active{color:var(--text);background:var(--bg-2);border-color:var(--border-hi)}
+  .badge{
+    padding:4px 10px;border-radius:99px;font:600 11px 'JetBrains Mono';
+    background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.3)
+  }
+
+  /* HERO */
+  .hero{max-width:1400px;margin:0 auto;padding:48px 24px 24px;text-align:center}
+  .hero h1{
+    font-size:clamp(32px,5vw,56px);font-weight:800;letter-spacing:-1px;
+    background:linear-gradient(135deg,#fff 0%,#94a3b8 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:14px
+  }
+  .hero p{color:var(--text-dim);max-width:720px;margin:0 auto;font-size:17px;line-height:1.6}
+  .hero .chips{display:flex;gap:10px;justify-content:center;margin-top:22px;flex-wrap:wrap}
+  .chip{
+    padding:8px 16px;border-radius:99px;font-size:13px;font-weight:600;
+    border:1px solid var(--border);background:var(--bg-2)
+  }
+  .chip .dot{display:inline-block;width:8px;height:8px;border-radius:99px;margin-right:8px;vertical-align:middle}
+
+  /* MAIN GRID */
+  main{max-width:1400px;margin:0 auto;padding:24px;display:grid;grid-template-columns:1fr 340px;gap:24px}
+  @media (max-width:1024px){main{grid-template-columns:1fr}}
+
+  .panel{
+    background:linear-gradient(180deg,var(--bg-2),var(--bg-1));
+    border:1px solid var(--border);border-radius:var(--radius);
+    padding:22px;box-shadow:var(--shadow)
+  }
+  .panel h2{font-size:18px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:10px}
+  .panel h2 .ic{width:28px;height:28px;border-radius:8px;background:var(--bg-3);display:grid;place-items:center;font-size:15px}
+
+  /* TABS */
+  .tabs{display:flex;gap:6px;background:var(--bg-1);padding:6px;border-radius:12px;margin-bottom:18px;border:1px solid var(--border)}
+  .tab{
+    flex:1;padding:10px 14px;text-align:center;border-radius:8px;cursor:pointer;
+    font-weight:600;font-size:14px;color:var(--text-dim);transition:.2s;border:none;background:transparent
+  }
+  .tab.active{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;box-shadow:0 4px 14px rgba(124,58,237,.4)}
+
+  /* DROPZONE */
+  .dropzone{
+    border:2px dashed var(--border);border-radius:14px;padding:48px 22px;text-align:center;
+    cursor:pointer;transition:.25s;background:var(--bg-1);position:relative;overflow:hidden
+  }
+  .dropzone:hover,.dropzone.drag{border-color:var(--accent);background:rgba(0,212,255,.05)}
+  .dropzone svg{width:54px;height:54px;color:var(--accent);margin-bottom:14px}
+  .dropzone h3{font-weight:700;font-size:17px;margin-bottom:6px}
+  .dropzone p{color:var(--text-dim);font-size:14px}
+  .dropzone .pick{
+    margin-top:16px;padding:10px 22px;border-radius:10px;font-weight:600;font-size:14px;
+    background:linear-gradient(135deg,var(--accent),var(--accent-2));border:none;color:#fff;cursor:pointer
+  }
+
+  /* VIDEO/CANVAS */
+  .stage{position:relative;border-radius:14px;overflow:hidden;background:#000;aspect-ratio:16/9;border:1px solid var(--border)}
+  .stage video,.stage canvas,.stage img{width:100%;height:100%;object-fit:contain;display:block}
+  .stage .overlay-canvas{position:absolute;inset:0;pointer-events:none}
+  .stage .placeholder{
+    position:absolute;inset:0;display:grid;place-items:center;color:var(--text-mute);
+    font-size:14px;flex-direction:column;text-align:center;padding:20px
+  }
+  .stage .placeholder.hidden{display:none}
+
+  .stage-overlay-top{
+    position:absolute;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;
+    align-items:center;gap:10px;pointer-events:none
+  }
+  .pill{
+    background:rgba(10,14,26,.7);backdrop-filter:blur(8px);border:1px solid var(--border);
+    padding:6px 12px;border-radius:99px;font:600 12px 'JetBrains Mono';
+    display:inline-flex;gap:8px;align-items:center
+  }
+  .pill .live{width:8px;height:8px;border-radius:99px;background:#ef4444;animation:pulse 1.4s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+  /* CONTROLS */
+  .controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+  .btn{
+    padding:10px 18px;border-radius:10px;font-weight:600;font-size:14px;cursor:pointer;
+    border:1px solid var(--border);background:var(--bg-3);color:var(--text);
+    display:inline-flex;align-items:center;gap:8px;transition:.2s
+  }
+  .btn:hover{background:var(--bg-2);border-color:var(--border-hi)}
+  .btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent-2));border:none;color:#fff}
+  .btn.primary:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(124,58,237,.4)}
+  .btn.danger{background:#7f1d1d;border-color:#991b1b}
+  .btn.success{background:#065f46;border-color:#047857}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+
+  /* SIDEBAR */
+  .sidebar{display:flex;flex-direction:column;gap:18px}
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .stat{
+    background:var(--bg-1);padding:14px;border-radius:10px;border:1px solid var(--border)
+  }
+  .stat .lbl{font-size:11px;color:var(--text-mute);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px}
+  .stat .val{font:700 22px 'JetBrains Mono';color:var(--text)}
+
+  .class-list{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+  .class-row{
+    display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;
+    background:var(--bg-1);border:1px solid var(--border)
+  }
+  .class-row .swatch{width:14px;height:14px;border-radius:4px}
+  .class-row .name{flex:1;font-weight:600;font-size:14px;text-transform:capitalize}
+  .class-row .count{font:700 16px 'JetBrains Mono';min-width:30px;text-align:right}
+  .class-row .bar{height:4px;background:var(--bg-3);border-radius:2px;overflow:hidden;flex:1;max-width:100px}
+  .class-row .bar > span{display:block;height:100%;border-radius:2px;transition:width .4s}
+
+  /* SLIDERS */
+  .slider-group{margin-bottom:14px}
+  .slider-group label{display:flex;justify-content:space-between;font-size:13px;color:var(--text-dim);margin-bottom:8px}
+  .slider-group label b{color:var(--text);font-family:'JetBrains Mono'}
+  input[type="range"]{
+    -webkit-appearance:none;width:100%;height:6px;background:var(--bg-3);border-radius:99px;outline:none
+  }
+  input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:18px;height:18px;border-radius:99px;
+    background:linear-gradient(135deg,var(--accent),var(--accent-2));cursor:pointer;
+    box-shadow:0 2px 8px rgba(0,212,255,.4)
+  }
+  .toggle-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;font-size:14px}
+  .switch{position:relative;width:42px;height:24px}
+  .switch input{opacity:0;width:0;height:0}
+  .slider-sw{
+    position:absolute;cursor:pointer;inset:0;background:var(--bg-3);
+    border-radius:24px;transition:.3s
+  }
+  .slider-sw:before{
+    position:absolute;content:"";height:18px;width:18px;left:3px;bottom:3px;
+    background:#fff;border-radius:50%;transition:.3s
+  }
+  .switch input:checked + .slider-sw{background:linear-gradient(135deg,var(--accent),var(--accent-2))}
+  .switch input:checked + .slider-sw:before{transform:translateX(18px)}
+
+  /* HISTORY */
+  .history{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px;margin-top:8px}
+  .history img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer;transition:.2s}
+  .history img:hover{transform:scale(1.05);border-color:var(--accent)}
+
+  /* BACKEND CONFIG */
+  .input-text{
+    width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);
+    background:var(--bg-1);color:var(--text);font:500 13px 'JetBrains Mono'
+  }
+  .input-text:focus{outline:none;border-color:var(--accent)}
+
+  /* TOAST */
+  .toast-wrap{position:fixed;bottom:24px;right:24px;z-index:100;display:flex;flex-direction:column;gap:10px}
+  .toast{
+    padding:12px 18px;border-radius:10px;background:var(--bg-3);border:1px solid var(--border);
+    color:var(--text);font-size:14px;box-shadow:var(--shadow);min-width:240px;
+    animation:slideIn .3s ease;display:flex;gap:10px;align-items:center
+  }
+  .toast.success{border-color:#10b981}
+  .toast.error{border-color:#ef4444}
+  .toast.info{border-color:var(--accent)}
+  @keyframes slideIn{from{transform:translateX(120%)}to{transform:translateX(0)}}
+
+  /* FOOTER */
+  footer{
+    max-width:1400px;margin:40px auto 0;padding:24px;
+    border-top:1px solid var(--border);text-align:center;color:var(--text-mute);font-size:13px
+  }
+
+  /* HIDDEN */
+  .hidden{display:none !important}
+
+  /* SECTIONS */
+  .section{display:none}
+  .section.active{display:block}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="nav">
+    <div class="logo">
+      <div class="logo-mark">♻️</div>
+      <div>
+        Waste<span style="color:var(--accent)">Sense</span>
+        <div style="font:400 11px 'JetBrains Mono';color:var(--text-mute)">YOLO26s • v1.0</div>
+      </div>
+    </div>
+    <div class="nav-links">
+      <button class="active" data-section="detect">🎯 Detect</button>
+      <button data-section="about">📊 About</button>
+      <button data-section="settings">⚙️ Settings</button>
+    </div>
+    <div class="badge" id="modelStatus">● Model Ready</div>
+  </div>
+</header>
+
+<div class="hero">
+  <h1>AI-Powered Waste Classification</h1>
+  <p>Real-time detection and classification of recyclable materials using a YOLO26s deep learning model trained on the Waste Sense dataset.</p>
+  <div class="chips">
+    <div class="chip"><span class="dot" style="background:#1565C0"></span>Glass</div>
+    <div class="chip"><span class="dot" style="background:#B71C1C"></span>Metal</div>
+    <div class="chip"><span class="dot" style="background:#2E7D32"></span>Paper</div>
+    <div class="chip"><span class="dot" style="background:#E65100"></span>Plastic</div>
+  </div>
+</div>
+
+<main>
+  <!-- ========== DETECT SECTION ========== -->
+  <section class="section active" id="section-detect">
+    <div class="panel" style="margin-bottom:24px">
+      <div class="tabs">
+        <button class="tab active" data-tab="upload">📁 Upload Image</button>
+        <button class="tab" data-tab="camera">📷 Live Camera</button>
+        <button class="tab" data-tab="video">🎬 Video File</button>
+      </div>
+
+      <!-- UPLOAD TAB -->
+      <div id="tab-upload" class="tab-content">
+        <div class="dropzone" id="dropzone">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          <h3>Drag & drop an image here</h3>
+          <p>or click to browse — JPG, PNG, WEBP (max 10MB)</p>
+          <button class="pick">Choose File</button>
+          <input type="file" id="fileInput" accept="image/*" hidden multiple>
+        </div>
+        <div class="stage hidden" id="imgStage" style="margin-top:18px">
+          <img id="resultImg" alt="">
+          <canvas class="overlay-canvas" id="imgOverlay"></canvas>
+        </div>
+        <div class="controls hidden" id="imgControls">
+          <button class="btn primary" id="btnDetect">🔍 Run Detection</button>
+          <button class="btn" id="btnDownload">⬇ Download Result</button>
+          <button class="btn danger" id="btnClearImg">✕ Clear</button>
+        </div>
+      </div>
+
+      <!-- CAMERA TAB -->
+      <div id="tab-camera" class="tab-content hidden">
+        <div class="stage" id="camStage">
+          <video id="webcam" autoplay playsinline muted></video>
+          <canvas class="overlay-canvas" id="camOverlay"></canvas>
+          <div class="placeholder" id="camPlaceholder">
+            <div style="font-size:48px;margin-bottom:8px">📷</div>
+            <div>Camera is off</div>
+            <div style="font-size:12px;margin-top:6px;color:var(--text-mute)">Click "Start Camera" below</div>
+          </div>
+          <div class="stage-overlay-top">
+            <div class="pill" id="livePill" style="display:none"><span class="live"></span>LIVE</div>
+            <div class="pill mono" id="fpsPill" style="display:none">FPS 0.0</div>
+          </div>
+        </div>
+        <div class="controls">
+          <button class="btn primary" id="btnStartCam">▶ Start Camera</button>
+          <button class="btn danger" id="btnStopCam" disabled>■ Stop</button>
+          <button class="btn" id="btnSnapshot" disabled>📸 Snapshot</button>
+          <button class="btn" id="btnSwitchCam" disabled>🔄 Switch</button>
+          <select class="input-text" id="camSelect" style="max-width:240px"><option>Loading cameras…</option></select>
+        </div>
+      </div>
+
+      <!-- VIDEO TAB -->
+      <div id="tab-video" class="tab-content hidden">
+        <div class="dropzone" id="videoDrop">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <polygon points="23 7 16 12 23 17 23 7"/>
+            <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+          </svg>
+          <h3>Upload a video file</h3>
+          <p>MP4, WEBM, MOV — frame-by-frame detection</p>
+          <button class="pick">Choose Video</button>
+          <input type="file" id="videoInput" accept="video/*" hidden>
+        </div>
+        <div class="stage hidden" id="videoStage" style="margin-top:18px">
+          <video id="userVideo" controls></video>
+          <canvas class="overlay-canvas" id="videoOverlay"></canvas>
+        </div>
+        <div class="controls hidden" id="videoControls">
+          <button class="btn primary" id="btnPlayDetect">▶ Play with Detection</button>
+          <button class="btn danger" id="btnClearVideo">✕ Clear</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="panel">
+      <h2><span class="ic">🕒</span> Snapshot History <span style="margin-left:auto;font:500 12px Inter;color:var(--text-mute)" id="histCount">0 items</span></h2>
+      <div class="history" id="historyGrid">
+        <div style="grid-column:1/-1;text-align:center;color:var(--text-mute);font-size:13px;padding:18px">No snapshots yet</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== ABOUT SECTION ========== -->
+  <section class="section" id="section-about">
+    <div class="panel">
+      <h2><span class="ic">📊</span> About Waste Sense</h2>
+      <p style="color:var(--text-dim);line-height:1.7;margin-bottom:18px">
+        Waste Sense is a deep-learning powered waste classification system built with the YOLO26s object detection architecture.
+        It identifies four major recyclable categories in real time and provides probability scores for each detection.
+      </p>
+      <div class="stat-grid" style="margin-top:14px">
+        <div class="stat"><div class="lbl">Architecture</div><div class="val">YOLO26s</div></div>
+        <div class="stat"><div class="lbl">Classes</div><div class="val">4</div></div>
+        <div class="stat"><div class="lbl">Image Size</div><div class="val">640px</div></div>
+        <div class="stat"><div class="lbl">Framework</div><div class="val">Ultralytics</div></div>
+      </div>
+      <h2 style="margin-top:24px"><span class="ic">🎯</span> Detection Classes</h2>
+      <div class="class-list">
+        <div class="class-row"><div class="swatch" style="background:#1565C0"></div><div class="name">Glass</div><div style="color:var(--text-mute);font-size:13px">Bottles, jars, containers</div></div>
+        <div class="class-row"><div class="swatch" style="background:#B71C1C"></div><div class="name">Metal</div><div style="color:var(--text-mute);font-size:13px">Cans, foil, scraps</div></div>
+        <div class="class-row"><div class="swatch" style="background:#2E7D32"></div><div class="name">Paper</div><div style="color:var(--text-mute);font-size:13px">Cardboard, newspaper, packaging</div></div>
+        <div class="class-row"><div class="swatch" style="background:#E65100"></div><div class="name">Plastic</div><div style="color:var(--text-mute);font-size:13px">Bottles, bags, containers</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== SETTINGS SECTION ========== -->
+  <section class="section" id="section-settings">
+    <div class="panel">
+      <h2><span class="ic">⚙️</span> Backend Configuration</h2>
+      <p style="color:var(--text-dim);font-size:13px;margin-bottom:14px">
+        The <code style="color:var(--accent)">best.pt</code> PyTorch model cannot run directly in the browser.
+        Connect to a backend inference API (e.g., FastAPI/Flask serving Ultralytics YOLO).
+      </p>
+      <div class="slider-group">
+        <label>API Endpoint URL</label>
+        <input type="text" class="input-text" id="apiUrl" placeholder="http://localhost:8000/predict" value="http://localhost:8000/predict">
+      </div>
+      <div class="slider-group">
+        <label>API Key (optional)</label>
+        <input type="password" class="input-text" id="apiKey" placeholder="Bearer token">
+      </div>
+      <button class="btn primary" id="btnTestApi" style="margin-top:8px">🔌 Test Connection</button>
+      <button class="btn" id="btnDemoMode" style="margin-top:8px">🎭 Use Demo Mode</button>
+      <p style="margin-top:14px;font-size:12px;color:var(--text-mute);line-height:1.6">
+        <strong>Demo mode</strong> generates simulated detections so you can preview the interface without a backend.
+        For production, deploy <code style="color:var(--accent)">best.pt</code> using a FastAPI server with Ultralytics.
+      </p>
+    </div>
+
+    <div class="panel" style="margin-top:18px">
+      <h2><span class="ic">🐍</span> Sample Backend (FastAPI)</h2>
+      <pre style="background:var(--bg-0);padding:14px;border-radius:10px;border:1px solid var(--border);overflow-x:auto;font-size:12px;line-height:1.6;color:var(--text-dim)"><code>from fastapi import FastAPI, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
+from ultralytics import YOLO
+from PIL import Image
+import io
+
+app = FastAPI()
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+model = YOLO("best.pt")
+
+@app.post("/predict")
+async def predict(file: UploadFile, conf: float = 0.4, iou: float = 0.45):
+    img = Image.open(io.BytesIO(await file.read())).convert("RGB")
+    res = model.predict(img, conf=conf, iou=iou, imgsz=640, verbose=False)[0]
+    dets = []
+    for b in res.boxes:
+        x1,y1,x2,y2 = b.xyxy[0].tolist()
+        dets.append({
+          "bbox":[x1,y1,x2,y2],
+          "class_id": int(b.cls[0]),
+          "class_name": model.names[int(b.cls[0])],
+          "confidence": float(b.conf[0])
+        })
+    return {"detections": dets, "image_size": list(img.size)}</code></pre>
+    </div>
+  </section>
+
+  <!-- ========== SIDEBAR ========== -->
+  <aside class="sidebar">
+    <div class="panel">
+      <h2><span class="ic">🎛</span> Detection Controls</h2>
+      <div class="slider-group">
+        <label>Confidence Threshold <b id="confVal">0.40</b></label>
+        <input type="range" id="confSlider" min="0.05" max="0.95" step="0.05" value="0.40">
+      </div>
+      <div class="slider-group">
+        <label>IoU Threshold <b id="iouVal">0.45</b></label>
+        <input type="range" id="iouSlider" min="0.10" max="0.95" step="0.05" value="0.45">
+      </div>
+      <div class="slider-group">
+        <label>Image Size <b id="imgsizeVal">640</b></label>
+        <input type="range" id="imgsizeSlider" min="320" max="1280" step="32" value="640">
+      </div>
+
+      <div style="height:1px;background:var(--border);margin:14px 0"></div>
+
+      <div class="toggle-row">
+        <span>Show Confidence</span>
+        <label class="switch"><input type="checkbox" id="tShowConf" checked><span class="slider-sw"></span></label>
+      </div>
+      <div class="toggle-row">
+        <span>Show Labels</span>
+        <label class="switch"><input type="checkbox" id="tShowLabels" checked><span class="slider-sw"></span></label>
+      </div>
+      <div class="toggle-row">
+        <span>Show FPS</span>
+        <label class="switch"><input type="checkbox" id="tShowFps" checked><span class="slider-sw"></span></label>
+      </div>
+      <div class="toggle-row">
+        <span>Filled Boxes</span>
+        <label class="switch"><input type="checkbox" id="tFilled"><span class="slider-sw"></span></label>
+      </div>
+      <div class="toggle-row">
+        <span>Auto-detect (live)</span>
+        <label class="switch"><input type="checkbox" id="tAutoDetect" checked><span class="slider-sw"></span></label>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2><span class="ic">📈</span> Live Statistics</h2>
+      <div class="stat-grid">
+        <div class="stat"><div class="lbl">Total Detections</div><div class="val" id="statTotal">0</div></div>
+        <div class="stat"><div class="lbl">FPS</div><div class="val" id="statFps">0.0</div></div>
+        <div class="stat"><div class="lbl">Latency</div><div class="val" id="statLatency">0ms</div></div>
+        <div class="stat"><div class="lbl">Frames</div><div class="val" id="statFrames">0</div></div>
+      </div>
+      <h2 style="margin-top:18px;font-size:15px"><span class="ic">🏷</span> Class Distribution</h2>
+      <div class="class-list" id="classStats">
+        <div class="class-row"><div class="swatch" style="background:#1565C0"></div><div class="name">Glass</div><div class="bar"><span style="width:0%;background:#1565C0"></span></div><div class="count" id="cnt-0">0</div></div>
+        <div class="class-row"><div class="swatch" style="background:#B71C1C"></div><div class="name">Metal</div><div class="bar"><span style="width:0%;background:#B71C1C"></span></div><div class="count" id="cnt-1">0</div></div>
+        <div class="class-row"><div class="swatch" style="background:#2E7D32"></div><div class="name">Paper</div><div class="bar"><span style="width:0%;background:#2E7D32"></span></div><div class="count" id="cnt-2">0</div></div>
+        <div class="class-row"><div class="swatch" style="background:#E65100"></div><div class="name">Plastic</div><div class="bar"><span style="width:0%;background:#E65100"></span></div><div class="count" id="cnt-3">0</div></div>
+      </div>
+      <button class="btn" style="margin-top:14px;width:100%" id="btnReset">↻ Reset Stats</button>
+    </div>
+  </aside>
+</main>
+
+<footer>
+  <p>Waste Sense © 2026 — Built with YOLO26s • Ultralytics • PyTorch</p>
+  <p style="margin-top:6px;font-size:12px">Model: best.pt • 4 classes • 640px input • <span class="mono" style="color:var(--accent)">v1.0</span></p>
+</footer>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+/* ============================================================
+   WASTE SENSE WEB INTERFACE — main JS
+   ============================================================ */
+const CLASS_NAMES = {0:"glass",1:"metal",2:"paper",3:"plastic"};
+const CLASS_COLORS = {0:"#1565C0",1:"#B71C1C",2:"#2E7D32",3:"#E65100"};
+
+const state = {
+  apiUrl: localStorage.getItem("ws_api") || "http://localhost:8000/predict",
+  apiKey: localStorage.getItem("ws_key") || "",
+  demoMode: true,
+  conf: 0.40, iou: 0.45, imgsize: 640,
+  showConf: true, showLabels: true, showFps: true, filled: false, autoDetect: true,
+  totalDetections: 0, frames: 0, classCounts: {0:0,1:0,2:0,3:0},
+  cameraStream: null, currentDeviceId: null, devices: [],
+  detectionLoop: null, snapshots: []
+};
+document.getElementById("apiUrl").value = state.apiUrl;
+document.getElementById("apiKey").value = state.apiKey;
+
+/* ---------- TOAST ---------- */
+function toast(msg, type="info"){
+  const w=document.getElementById("toastWrap");
+  const t=document.createElement("div");
+  t.className=`toast ${type}`;
+  t.innerHTML=`<span>${type==="success"?"✓":type==="error"?"✕":"ℹ"}</span><span>${msg}</span>`;
+  w.appendChild(t);
+  setTimeout(()=>{t.style.opacity="0";setTimeout(()=>t.remove(),300)},3500);
+}
+
+/* ---------- NAV / TABS ---------- */
+document.querySelectorAll(".nav-links button").forEach(btn=>{
+  btn.onclick=()=>{
+    document.querySelectorAll(".nav-links button").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
+    document.getElementById("section-"+btn.dataset.section).classList.add("active");
+  };
+});
+document.querySelectorAll(".tab").forEach(tab=>{
+  tab.onclick=()=>{
+    document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+    tab.classList.add("active");
+    document.querySelectorAll(".tab-content").forEach(c=>c.classList.add("hidden"));
+    document.getElementById("tab-"+tab.dataset.tab).classList.remove("hidden");
+  };
+});
+
+/* ---------- SLIDERS / TOGGLES ---------- */
+const bind=(id,key,suffix="",fmt=v=>v)=>{
+  const el=document.getElementById(id);
+  const out=document.getElementById(key+"Val");
+  el.oninput=()=>{ state[key]=parseFloat(el.value); out.textContent=fmt(el.value)+suffix; };
+};
+bind("confSlider","conf");
+bind("iouSlider","iou");
+bind("imgsizeSlider","imgsize","",v=>v);
+const bindToggle=(id,key)=>{
+  const el=document.getElementById(id);
+  el.onchange=()=>state[key]=el.checked;
+};
+bindToggle("tShowConf","showConf");
+bindToggle("tShowLabels","showLabels");
+bindToggle("tShowFps","showFps");
+bindToggle("tFilled","filled");
+bindToggle("tAutoDetect","autoDetect");
+
+/* ---------- BACKEND ---------- */
+document.getElementById("apiUrl").oninput=e=>{state.apiUrl=e.target.value;localStorage.setItem("ws_api",e.target.value);};
+document.getElementById("apiKey").oninput=e=>{state.apiKey=e.target.value;localStorage.setItem("ws_key",e.target.value);};
+document.getElementById("btnTestApi").onclick=async()=>{
+  toast("Testing API connection…","info");
+  try{
+    const r=await fetch(state.apiUrl,{method:"OPTIONS"});
+    if(r.ok||r.status===405){state.demoMode=false;toast("API connected ✓","success");
+      document.getElementById("modelStatus").textContent="● API Connected";}
+    else throw new Error(r.status);
+  }catch(e){
+    toast("API unreachable — using demo mode","error");
+    state.demoMode=true;
+    document.getElementById("modelStatus").textContent="● Demo Mode";
+  }
+};
+document.getElementById("btnDemoMode").onclick=()=>{
+  state.demoMode=true;toast("Demo mode enabled","info");
+  document.getElementById("modelStatus").textContent="● Demo Mode";
+};
+
+/* ---------- DEMO INFERENCE ---------- */
+function demoInfer(w,h){
+  const n=Math.floor(Math.random()*3)+1;
+  const out=[];
+  for(let i=0;i<n;i++){
+    const cid=Math.floor(Math.random()*4);
+    const bw=80+Math.random()*220, bh=80+Math.random()*220;
+    const x1=Math.random()*(w-bw), y1=Math.random()*(h-bh);
+    const c=state.conf+Math.random()*(0.99-state.conf);
+    out.push({bbox:[x1,y1,x1+bw,y1+bh],class_id:cid,class_name:CLASS_NAMES[cid],confidence:c});
+  }
+  return out;
+}
+
+async function runInference(blob,w,h){
+  if(state.demoMode) return demoInfer(w,h);
+  const fd=new FormData();
+  fd.append("file",blob,"frame.jpg");
+  const url=`${state.apiUrl}?conf=${state.conf}&iou=${state.iou}&imgsz=${state.imgsize}`;
+  const headers={};
+  if(state.apiKey) headers["Authorization"]=`Bearer ${state.apiKey}`;
+  try{
+    const r=await fetch(url,{method:"POST",body:fd,headers});
+    if(!r.ok) throw new Error(r.status);
+    const j=await r.json();
+    return j.detections||[];
+  }catch(e){
+    console.warn("API failed, falling back to demo",e);
+    return demoInfer(w,h);
+  }
+}
+
+/* ---------- DRAWING ---------- */
+function drawDetections(canvas,dets,sw,sh){
+  const ctx=canvas.getContext("2d");
+  canvas.width=sw;canvas.height=sh;
+  ctx.clearRect(0,0,sw,sh);
+  dets.forEach(d=>{
+    const [x1,y1,x2,y2]=d.bbox;
+    const color=CLASS_COLORS[d.class_id]||"#fff";
+    ctx.lineWidth=Math.max(2,sw/400);
+    ctx.strokeStyle=color;
+    if(state.filled){ctx.fillStyle=color+"33";ctx.fillRect(x1,y1,x2-x1,y2-y1);}
+    ctx.strokeRect(x1,y1,x2-x1,y2-y1);
+    if(state.showLabels){
+      const label=state.showConf?`${d.class_name} ${(d.confidence*100).toFixed(0)}%`:d.class_name;
+      ctx.font=`600 ${Math.max(13,sw/55)}px Inter`;
+      const m=ctx.measureText(label);
+      const pad=6, fh=Math.max(13,sw/55)+8;
+      ctx.fillStyle=color;
+      ctx.fillRect(x1,y1-fh,m.width+pad*2,fh);
+      ctx.fillStyle="#fff";
+      ctx.fillText(label,x1+pad,y1-6);
+    }
+  });
+}
+
+function updateStats(dets){
+  state.totalDetections+=dets.length;
+  state.frames++;
+  dets.forEach(d=>state.classCounts[d.class_id]++);
+  document.getElementById("statTotal").textContent=state.totalDetections;
+  document.getElementById("statFrames").textContent=state.frames;
+  const max=Math.max(...Object.values(state.classCounts),1);
+  for(let i=0;i<4;i++){
+    document.getElementById("cnt-"+i).textContent=state.classCounts[i];
+    const bar=document.querySelectorAll("#classStats .bar > span")[i];
+    bar.style.width=(state.classCounts[i]/max*100)+"%";
+  }
+}
+document.getElementById("btnReset").onclick=()=>{
+  state.totalDetections=0;state.frames=0;state.classCounts={0:0,1:0,2:0,3:0};
+  updateStats([]);toast("Stats reset","info");
+};
+
+/* ---------- IMAGE UPLOAD ---------- */
+const dz=document.getElementById("dropzone");
+const fileInput=document.getElementById("fileInput");
+dz.onclick=()=>fileInput.click();
+dz.querySelector(".pick").onclick=e=>{e.stopPropagation();fileInput.click();};
+["dragenter","dragover"].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.add("drag");}));
+["dragleave","drop"].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.remove("drag");}));
+dz.addEventListener("drop",e=>{if(e.dataTransfer.files.length) handleImage(e.dataTransfer.files[0]);});
+fileInput.onchange=e=>{if(e.target.files.length) handleImage(e.target.files[0]);};
+
+let currentImageBlob=null;
+function handleImage(file){
+  if(!file.type.startsWith("image/")){toast("Please select an image","error");return;}
+  currentImageBlob=file;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const img=document.getElementById("resultImg");
+    img.onload=()=>{
+      document.getElementById("imgStage").classList.remove("hidden");
+      document.getElementById("imgControls").classList.remove("hidden");
+      document.getElementById("dropzone").classList.add("hidden");
+      const canvas=document.getElementById("imgOverlay");
+      canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;
+      canvas.getContext("2d").clearRect(0,0,canvas.width,canvas.height);
+    };
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(file);
+  toast("Image loaded — click Run Detection","info");
+}
+
+document.getElementById("btnDetect").onclick=async()=>{
+  if(!currentImageBlob)return;
+  toast("Running detection…","info");
+  const t0=performance.now();
+  const img=document.getElementById("resultImg");
+  const dets=await runInference(currentImageBlob,img.naturalWidth,img.naturalHeight);
+  const dt=performance.now()-t0;
+  document.getElementById("statLatency").textContent=Math.round(dt)+"ms";
+  drawDetections(document.getElementById("imgOverlay"),dets,img.naturalWidth,img.naturalHeight);
+  updateStats(dets);
+  toast(`Found ${dets.length} object(s) in ${Math.round(dt)}ms`,"success");
+};
+
+document.getElementById("btnDownload").onclick=()=>{
+  const img=document.getElementById("resultImg");
+  const overlay=document.getElementById("imgOverlay");
+  const c=document.createElement("canvas");
+  c.width=img.naturalWidth;c.height=img.naturalHeight;
+  const ctx=c.getContext("2d");
+  ctx.drawImage(img,0,0);
+  ctx.drawImage(overlay,0,0);
+  const a=document.createElement("a");
+  a.download="wastesense_result.png";
+  a.href=c.toDataURL("image/png");a.click();
+  toast("Result downloaded","success");
+};
+document.getElementById("btnClearImg").onclick=()=>{
+  currentImageBlob=null;
+  document.getElementById("imgStage").classList.add("hidden");
+  document.getElementById("imgControls").classList.add("hidden");
+  document.getElementById("dropzone").classList.remove("hidden");
+  fileInput.value="";
+};
+
+/* ---------- CAMERA ---------- */
+const video=document.getElementById("webcam");
+const camOverlay=document.getElementById("camOverlay");
+const fpsBuf=[];
+
+async function listCameras(){
+  try{
+    const ds=await navigator.mediaDevices.enumerateDevices();
+    state.devices=ds.filter(d=>d.kind==="videoinput");
+    const sel=document.getElementById("camSelect");
+    sel.innerHTML="";
+    state.devices.forEach((d,i)=>{
+      const o=document.createElement("option");
+      o.value=d.deviceId;o.textContent=d.label||`Camera ${i+1}`;
+      sel.appendChild(o);
+    });
+  }catch(e){console.error(e);}
+}
+listCameras();
+
+document.getElementById("btnStartCam").onclick=async()=>{
+  try{
+    const sel=document.getElementById("camSelect");
+    const constraints={video:sel.value?{deviceId:{exact:sel.value}}:true,audio:false};
+    const stream=await navigator.mediaDevices.getUserMedia(constraints);
+    state.cameraStream=stream;
+    video.srcObject=stream;
+    document.getElementById("camPlaceholder").classList.add("hidden");
+    document.getElementById("livePill").style.display="inline-flex";
+    document.getElementById("fpsPill").style.display="inline-flex";
+    document.getElementById("btnStartCam").disabled=true;
+    document.getElementById("btnStopCam").disabled=false;
+    document.getElementById("btnSnapshot").disabled=false;
+    document.getElementById("btnSwitchCam").disabled=state.devices.length<2;
+    await listCameras();
+    toast("Camera started","success");
+    startDetectionLoop();
+  }catch(e){toast("Camera access denied: "+e.message,"error");}
+};
+
+document.getElementById("btnStopCam").onclick=()=>{
+  if(state.cameraStream){state.cameraStream.getTracks().forEach(t=>t.stop());}
+  state.cameraStream=null;
+  if(state.detectionLoop){cancelAnimationFrame(state.detectionLoop);state.detectionLoop=null;}
+  video.srcObject=null;
+  camOverlay.getContext("2d").clearRect(0,0,camOverlay.width,camOverlay.height);
+  document.getElementById("camPlaceholder").classList.remove("hidden");
+  document.getElementById("livePill").style.display="none";
+  document.getElementById("fpsPill").style.display="none";
+  document.getElementById("btnStartCam").disabled=false;
+  document.getElementById("btnStopCam").disabled=true;
+  document.getElementById("btnSnapshot").disabled=true;
+  toast("Camera stopped","info");
+};
+
+document.getElementById("btnSwitchCam").onclick=async()=>{
+  const sel=document.getElementById("camSelect");
+  const idx=state.devices.findIndex(d=>d.deviceId===sel.value);
+  const next=state.devices[(idx+1)%state.devices.length];
+  sel.value=next.deviceId;
+  document.getElementById("btnStopCam").click();
+  setTimeout(()=>document.getElementById("btnStartCam").click(),200);
+};
+
+let lastInferTs=0, infering=false;
+async function startDetectionLoop(){
+  const off=document.createElement("canvas");
+  const offCtx=off.getContext("2d");
+  let lastFrame=performance.now();
+
+  const loop=async()=>{
+    if(!state.cameraStream)return;
+    const now=performance.now();
+    const dt=now-lastFrame;lastFrame=now;
+    fpsBuf.push(1000/Math.max(dt,1));if(fpsBuf.length>30)fpsBuf.shift();
+    const fps=fpsBuf.reduce((a,b)=>a+b,0)/fpsBuf.length;
+    document.getElementById("statFps").textContent=fps.toFixed(1);
+    document.getElementById("fpsPill").textContent=`FPS ${fps.toFixed(1)}`;
+
+    if(state.autoDetect && !infering && video.videoWidth && (now-lastInferTs>120)){
+      infering=true;lastInferTs=now;
+      off.width=video.videoWidth;off.height=video.videoHeight;
+      offCtx.drawImage(video,0,0);
+      off.toBlob(async(blob)=>{
+        const t0=performance.now();
+        const dets=await runInference(blob,off.width,off.height);
+        const lat=performance.now()-t0;
+        document.getElementById("statLatency").textContent=Math.round(lat)+"ms";
+        drawDetections(camOverlay,dets,off.width,off.height);
+        updateStats(dets);
+        infering=false;
+      },"image/jpeg",0.85);
+    }
+    state.detectionLoop=requestAnimationFrame(loop);
+  };
+  loop();
+}
+
+document.getElementById("btnSnapshot").onclick=()=>{
+  if(!video.videoWidth)return;
+  const c=document.createElement("canvas");
+  c.width=video.videoWidth;c.height=video.videoHeight;
+  const ctx=c.getContext("2d");
+  ctx.drawImage(video,0,0);
+  ctx.drawImage(camOverlay,0,0,c.width,c.height);
+  const dataUrl=c.toDataURL("image/png");
+  state.snapshots.unshift(dataUrl);
+  renderHistory();
+  const a=document.createElement("a");
+  a.download=`snapshot_${Date.now()}.png`;a.href=dataUrl;a.click();
+  toast("Snapshot saved","success");
+};
+
+function renderHistory(){
+  const grid=document.getElementById("historyGrid");
+  document.getElementById("histCount").textContent=`${state.snapshots.length} item${state.snapshots.length!==1?"s":""}`;
+  if(state.snapshots.length===0){
+    grid.innerHTML=`<div style="grid-column:1/-1;text-align:center;color:var(--text-mute);font-size:13px;padding:18px">No snapshots yet</div>`;
+    return;
+  }
+  grid.innerHTML="";
+  state.snapshots.slice(0,24).forEach(s=>{
+    const img=document.createElement("img");
+    img.src=s;img.onclick=()=>{const w=window.open();w.document.write(`<img src="${s}" style="max-width:100%">`);};
+    grid.appendChild(img);
+  });
+}
+
+/* ---------- VIDEO FILE ---------- */
+const vDrop=document.getElementById("videoDrop");
+const vIn=document.getElementById("videoInput");
+const userVideo=document.getElementById("userVideo");
+const videoOverlay=document.getElementById("videoOverlay");
+vDrop.onclick=()=>vIn.click();
+vDrop.querySelector(".pick").onclick=e=>{e.stopPropagation();vIn.click();};
+vIn.onchange=e=>{
+  const f=e.target.files[0];if(!f)return;
+  userVideo.src=URL.createObjectURL(f);
+  document.getElementById("videoStage").classList.remove("hidden");
+  document.getElementById("videoControls").classList.remove("hidden");
+  vDrop.classList.add("hidden");
+};
+let videoLoop=null;
+document.getElementById("btnPlayDetect").onclick=()=>{
+  userVideo.play();
+  const off=document.createElement("canvas");
+  const ctx=off.getContext("2d");
+  let busy=false;
+  const tick=async()=>{
+    if(userVideo.paused||userVideo.ended)return;
+    if(!busy && userVideo.videoWidth){
+      busy=true;
+      off.width=userVideo.videoWidth;off.height=userVideo.videoHeight;
+      ctx.drawImage(userVideo,0,0);
+      off.toBlob(async b=>{
+        const dets=await runInference(b,off.width,off.height);
+        drawDetections(videoOverlay,dets,off.width,off.height);
+        updateStats(dets);
+        busy=false;
+      },"image/jpeg",0.8);
+    }
+    videoLoop=requestAnimationFrame(tick);
+  };
+  tick();
+};
+document.getElementById("btnClearVideo").onclick=()=>{
+  if(videoLoop)cancelAnimationFrame(videoLoop);
+  userVideo.pause();userVideo.src="";
+  document.getElementById("videoStage").classList.add("hidden");
+  document.getElementById("videoControls").classList.add("hidden");
+  vDrop.classList.remove("hidden");
+};
+
+/* ---------- KEYBOARD SHORTCUTS ---------- */
+document.addEventListener("keydown",e=>{
+  if(e.target.tagName==="INPUT"||e.target.tagName==="TEXTAREA")return;
+  if(e.key==="s"||e.key==="S"){if(!document.getElementById("btnSnapshot").disabled)document.getElementById("btnSnapshot").click();}
+  if(e.key==="+"||e.key==="="){const s=document.getElementById("confSlider");s.value=Math.min(0.95,parseFloat(s.value)+0.05);s.dispatchEvent(new Event("input"));}
+  if(e.key==="-"||e.key==="_"){const s=document.getElementById("confSlider");s.value=Math.max(0.05,parseFloat(s.value)-0.05);s.dispatchEvent(new Event("input"));}
+});
+
+toast("Welcome to Waste Sense — Demo mode active","info");
+document.getElementById("modelStatus").textContent="● Demo Mode";
+</script>
+
+</body>
+</html>
